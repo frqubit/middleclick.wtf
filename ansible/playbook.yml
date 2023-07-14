@@ -1,0 +1,75 @@
+---
+- name: Setup Apache2 logging
+  hosts: all
+  become: yes
+  become_method: sudo
+  tasks:
+    - name: Install Apache2 and utils
+      apt:
+        update_cache: yes
+        name:
+          - apache2
+          - apache2-utils
+    - name: Enable Apache2 mod_rewrite
+      shell: a2enmod rewrite proxy proxy_http
+    - name: Copy Apache2 Config
+      copy:
+        src: ./apache2.conf
+        dest: /etc/apache2/apache2.conf
+        owner: root
+        group: root
+    - name: Copy Apache2 site config
+      copy:
+        src: ./images.conf
+        dest: /etc/apache2/sites-available/images.conf
+        owner: root
+        group: root
+    - name: Enable Apache2 site
+      shell: a2ensite images.conf
+    - name: Disable default Apache2 site
+      shell: a2dissite 000-default.conf
+    - name: Create directory for images
+      file:
+        path: /var/www/middleclick.wtf/images
+        state: directory
+        owner: www-data
+        group: www-data
+    - name: Stop Apache2
+      service:
+        name: apache2
+        state: stopped
+    - name: Remove old HTTPS config if present
+      file:
+        path: /etc/apache2/sites-available/images-le-ssl.conf
+        state: absent
+    - name: Remove old HTTPS config symlink if present
+      file:
+        path: /etc/apache2/sites-enabled/images-le-ssl.conf
+        state: absent
+    - name: Restart Apache2
+      service:
+        name: apache2
+        state: restarted
+    - name: Install certbot
+      apt:
+        name:
+          - certbot
+          - python3-certbot-apache
+    - name: Get certificates
+      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com
+    - name: Stop Apache2 (time 2)
+      service:
+        name: apache2
+        state: stopped
+    - name: Copy Apache2 SSL site config
+      copy:
+        src: ./images-le-ssl.conf
+        dest: /etc/apache2/sites-available/images-le-ssl.conf
+        owner: root
+        group: root
+    - name: Enable Apache2 SSL site
+      shell: a2ensite images-le-ssl.conf
+    - name: Restart Apache2 (time 2)
+      service:
+        name: apache2
+        state: restarted

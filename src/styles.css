@@ -1,0 +1,20 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+#link-input {
+  @apply
+    block
+    text-center text-black
+    px-4 py-2
+    border border-transparent
+    rounded-md
+    focus:outline-none;
+}
+
+#redirect-link {
+  @apply
+    mb-4
+    text-center
+    font-light;
+}
