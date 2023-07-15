@@ -114,8 +114,14 @@ resource "aws_instance" "webserver" {
   }
 
   root_block_device {
-    volume_size = 16
+    volume_size = 8
     volume_type = "gp3"
+  }
+
+  ebs_block_device {
+    volume_size = 32
+    volume_type = "gp3"
+    device_name = "/dev/sdb"
   }
 
   tags = {

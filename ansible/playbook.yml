@@ -97,3 +97,20 @@
       service:
         name: api
         state: stopped
+    - name: Format disk if not formatted
+      community.general.filesystem:
+        fstype: ext4
+        state: present
+        dev: /dev/xvdb
+    - name: Mount disk
+      mount:
+        path: /var/www/middleclick.wtf/images
+        src: /dev/xvdb
+        fstype: ext4
+        state: mounted
+        opts: defaults
+    - name: Add mount to fstab
+      lineinfile:
+        path: /etc/fstab
+        line: "/dev/sdb /var/www/middleclick.wtf/images ext4 defaults 0 0"
+        state: present
