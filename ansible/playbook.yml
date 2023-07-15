@@ -10,8 +10,8 @@
         name:
           - apache2
           - apache2-utils
-    - name: Enable Apache2 mod_rewrite
-      shell: a2enmod rewrite proxy proxy_http
+    - name: Enable Apache2 mod_rewrite and ssl
+      shell: a2enmod rewrite ssl
     - name: Copy Apache2 Config
       copy:
         src: ./apache2.conf
@@ -56,7 +56,7 @@
           - certbot
           - python3-certbot-apache
     - name: Get certificates
-      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com
+      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com -d middleclick.wtf -d www.middleclick.wtf
     - name: Stop Apache2 (time 2)
       service:
         name: apache2
@@ -73,3 +73,27 @@
       service:
         name: apache2
         state: restarted
+    - name: Copy Systemd service
+      copy:
+        src: ./api.service
+        dest: /etc/systemd/system/api.service
+        owner: root
+        group: root
+    - name: Reload Systemd
+      systemd:
+        daemon_reload: yes
+    - name: Add admin to www-data
+      user:
+        name: admin
+        groups: www-data
+        append: yes
+    - name: Change www folder to 775
+      file:
+        path: /var/www/middleclick.wtf
+        mode: 0775
+        state: directory
+        recurse: yes
+    - name: Ensure API is stopped
+      service:
+        name: api
+        state: stopped

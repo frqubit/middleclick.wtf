@@ -2,3 +2,9 @@
 /target
 
 inventory.yml
+
+/.terraform
+/.terraform.lock.hcl
+/terraform.tfstate*
+
+/.make

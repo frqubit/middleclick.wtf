@@ -1,0 +1,14 @@
+[Unit]
+Description=middleclick.wtf API
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=admin
+ExecStart=/home/admin/api
+
+[Install]
+WantedBy=multi-user.target
