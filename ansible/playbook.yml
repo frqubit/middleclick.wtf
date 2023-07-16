@@ -11,7 +11,7 @@
           - apache2
           - apache2-utils
     - name: Enable Apache2 mod_rewrite and ssl
-      shell: a2enmod rewrite ssl
+      shell: a2enmod rewrite ssl proxy proxy_http
     - name: Copy Apache2 Config
       copy:
         src: ./apache2.conf
@@ -87,12 +87,6 @@
         name: admin
         groups: www-data
         append: yes
-    - name: Change www folder to 775
-      file:
-        path: /var/www/middleclick.wtf
-        mode: 0775
-        state: directory
-        recurse: yes
     - name: Ensure API is stopped
       service:
         name: api
@@ -101,16 +95,22 @@
       community.general.filesystem:
         fstype: ext4
         state: present
-        dev: /dev/xvdb
+        dev: /dev/xvdf
     - name: Mount disk
       mount:
         path: /var/www/middleclick.wtf/images
-        src: /dev/xvdb
+        src: /dev/xvdf
         fstype: ext4
         state: mounted
         opts: defaults
     - name: Add mount to fstab
       lineinfile:
         path: /etc/fstab
-        line: "/dev/sdb /var/www/middleclick.wtf/images ext4 defaults 0 0"
+        line: "/dev/xvdf /var/www/middleclick.wtf/images ext4 defaults 0 0"
         state: present
+    - name: Change www folder to 775
+      file:
+        path: /var/www/middleclick.wtf
+        mode: 0775
+        state: directory
+        recurse: yes

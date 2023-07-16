@@ -118,15 +118,26 @@ resource "aws_instance" "webserver" {
     volume_type = "gp3"
   }
 
-  ebs_block_device {
-    volume_size = 32
-    volume_type = "gp3"
-    device_name = "/dev/sdb"
-  }
-
   tags = {
     name = "middleclick.wtf-webserver"
   }
+}
+
+resource "aws_ebs_volume" "webserver" {
+  availability_zone = aws_instance.webserver.availability_zone
+  size              = 32
+  type              = "gp3"
+  encrypted         = true
+
+  tags = {
+    name = "middleclick.wtf-webserver-ebs"
+  }
+}
+
+resource "aws_volume_attachment" "webserver" {
+  device_name = "/dev/sdf"
+  volume_id   = aws_ebs_volume.webserver.id
+  instance_id = aws_instance.webserver.id
 }
 
 resource "aws_eip" "webserver" {

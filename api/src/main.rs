@@ -22,10 +22,11 @@ async fn upload(
 
     if let BodySize::Sized(size) = file.size() {
         if size > 25_000_000 {
-            info!("File too big: {}", size);
+            error!("File too big: {}", size);
             return Err(UploadError::FileTooBig);
         }
     } else {
+        error!("File has invalid size");
         return Err(UploadError::InternalServerError);
     }
 
@@ -33,6 +34,7 @@ async fn upload(
         .ok_or(UploadError::UnknownFileType)?;
 
     if file_type.matcher_type() != MatcherType::Image {
+        error!("File is not an image");
         return Err(UploadError::NotAnImage);
     }
 
@@ -40,10 +42,14 @@ async fn upload(
 
     let filename = format!("{}.{}", filename, extension);
 
+    info!("Uploading file: {}", filename);
+
     tokio::fs::write(
         format!("/var/www/middleclick.wtf/images/{}", filename).as_str(),
         file
     ).await.unwrap();
+
+    info!("Uploaded file: {}", filename);
 
     Ok(HttpResponse::Ok().body(filename))
 }
