@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+
+
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Redirecting...</title>
+  </head>
+
+  <body>
+    <script type="text/javascript">
+      let params = window.location.href.split("?")[1];
+      let urlParams = new URLSearchParams(params)
+      let redirect = urlParams.get("redirect");
+      window.location.href = redirect;
+    </script>
+  </body>
+</html>
