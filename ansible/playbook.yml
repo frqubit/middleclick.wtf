@@ -114,3 +114,10 @@
         mode: 0775
         state: directory
         recurse: yes
+    - name: Change www folder owners
+      file:
+        path: /var/www/middleclick.wtf
+        owner: www-data
+        group: www-data
+        state: directory
+        recurse: yes

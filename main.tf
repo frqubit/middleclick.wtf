@@ -104,9 +104,10 @@ resource "aws_network_interface" "webserver" {
 }
 
 resource "aws_instance" "webserver" {
-  ami           = data.aws_ami.debian.id
-  instance_type = "t2.micro"
-  key_name      = aws_key_pair.main.key_name
+  ami               = data.aws_ami.debian.id
+  instance_type     = "t2.micro"
+  availability_zone = var.availability_zone
+  key_name          = aws_key_pair.main.key_name
 
   network_interface {
     device_index         = 0
@@ -124,7 +125,7 @@ resource "aws_instance" "webserver" {
 }
 
 resource "aws_ebs_volume" "webserver" {
-  availability_zone = aws_instance.webserver.availability_zone
+  availability_zone = var.availability_zone
   size              = 32
   type              = "gp3"
   encrypted         = true
