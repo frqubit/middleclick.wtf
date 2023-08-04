@@ -121,3 +121,6 @@
         group: www-data
         state: directory
         recurse: yes
+    - name: Install rsync
+      apt:
+        name: rsync
