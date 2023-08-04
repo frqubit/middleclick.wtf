@@ -138,6 +138,7 @@ resource "aws_volume_attachment" "webserver" {
   device_name = "/dev/xvdf"
   volume_id   = aws_ebs_volume.webserver.id
   instance_id = aws_instance.webserver.id
+  stop_instance_before_detaching = true
 }
 
 resource "aws_eip" "webserver" {

@@ -18,6 +18,7 @@
     "tailwindcss": "^3.3.3"
   },
   "devDependencies": {
-    "@web/dev-server": "^0.3.0"
+    "@web/dev-server": "^0.3.0",
+    "concurrently": "^8.2.0"
   }
 }
