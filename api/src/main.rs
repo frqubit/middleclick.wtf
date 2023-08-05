@@ -4,7 +4,8 @@ use rand::prelude::*;
 use log::{info, error};
 use actix_web::{
     web, App, HttpResponse,
-    HttpServer, Responder, post,
+    HttpServer, Responder,
+    post, get,
     middleware::Logger, ResponseError,
     body::{MessageBody, BodySize}
 };
@@ -54,6 +55,27 @@ async fn upload(
     Ok(HttpResponse::Ok().body(filename))
 }
 
+#[get("/images/{filename}")]
+async fn get_image(
+    filename: web::Path<String>
+) -> Result<impl Responder, DownloadError> {
+    let filename = filename.into_inner();
+
+    info!("Downloading file: {}", filename);
+
+    let file = tokio::fs::read(
+        format!("/var/www/middleclick.wtf/images/{}", filename).as_str()
+    ).await;
+
+    if let Ok(file) = file {
+        info!("Downloaded file: {}", filename);
+        Ok(HttpResponse::Ok().body(file))
+    } else {
+        error!("File not found: {}", filename);
+        Err(DownloadError::NotFound)
+    }
+}
+
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
@@ -61,6 +83,7 @@ async fn main() -> std::io::Result<()> {
     HttpServer::new(|| {
         App::new()
             .service(upload)
+            .service(get_image)
             .wrap(Logger::default())
             .wrap(Logger::new("%a %{User-Agent}i"))
             .app_data(web::PayloadConfig::new(25_000_000))
@@ -88,6 +111,23 @@ impl ResponseError for UploadError {
             UploadError::NotAnImage => actix_web::http::StatusCode::BAD_REQUEST,
             UploadError::FileTooBig => actix_web::http::StatusCode::PAYLOAD_TOO_LARGE,
             UploadError::InternalServerError => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+pub enum DownloadError {
+    #[error("File not found")]
+    NotFound,
+    #[error("Internal server error")]
+    InternalServerError
+}
+
+impl ResponseError for DownloadError {
+    fn status_code(&self) -> actix_web::http::StatusCode {
+        match *self {
+            DownloadError::NotFound => actix_web::http::StatusCode::NOT_FOUND,
+            DownloadError::InternalServerError => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
         }
     }
 }
