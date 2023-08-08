@@ -1,5 +1,5 @@
 ---
-- name: Setup Apache2 logging
+- name: Setup Apache2 servers
   hosts: all
   become: yes
   become_method: sudo
@@ -19,8 +19,8 @@
         owner: root
         group: root
     - name: Copy Apache2 site config
-      copy:
-        src: ./images.conf
+      template:
+        src: ./images.conf.j2
         dest: /etc/apache2/sites-available/images.conf
         owner: root
         group: root
@@ -56,14 +56,14 @@
           - certbot
           - python3-certbot-apache
     - name: Get certificates
-      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com -d middleclick.wtf -d www.middleclick.wtf
+      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com {{ domains_certbot }}
     - name: Stop Apache2 (time 2)
       service:
         name: apache2
         state: stopped
     - name: Copy Apache2 SSL site config
-      copy:
-        src: ./images-le-ssl.conf
+      template:
+        src: ./images-le-ssl.conf.j2
         dest: /etc/apache2/sites-available/images-le-ssl.conf
         owner: root
         group: root

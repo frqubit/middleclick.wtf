@@ -10,7 +10,7 @@ init:
 	terraform init
 
 ansible: terraform
-	ansible-playbook -i inventory.yml ansible/playbook.yml
+	ansible-playbook -i inventory.yml ansible/playbook.yml --extra-vars "@ansible/vars/prod.yml"
 
 build: init
 	cross build -p api --target x86_64-unknown-linux-musl --release

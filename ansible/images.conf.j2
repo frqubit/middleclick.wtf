@@ -1,0 +1,6 @@
+<VirtualHost *:80>
+    {{ domains_apache }}
+
+    RewriteEngine On
+    RewriteRule ^ https://middleclick.wtf%{REQUEST_URI}%{QUERY_STRING} [END,NE,R=permanent]
+</VirtualHost>

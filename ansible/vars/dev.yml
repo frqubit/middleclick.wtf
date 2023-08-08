@@ -1,0 +1,6 @@
+domains_certbot: -d dev.middleclick.wtf -d www.dev.middleclick.wtf
+domains_apache: |
+  ServerName dev.middleclick.wtf
+  ServerAlias www.dev.middleclick.wtf
+certificate_path: /etc/letsencrypt/live/dev.middleclick.wtf/fullchain.pem
+certificate_key_path: /etc/letsencrypt/live/dev.middleclick.wtf/privkey.pem
