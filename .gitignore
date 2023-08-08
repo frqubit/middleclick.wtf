@@ -1,7 +1,7 @@
 /node_modules
 /target
 
-inventory.yml
+inventory*.yml
 
 /.terraform
 /.terraform.lock.hcl

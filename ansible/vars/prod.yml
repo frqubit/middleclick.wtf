@@ -1,3 +1,4 @@
+domain: middleclick.wtf
 domains_certbot: -d middleclick.wtf -d www.middleclick.wtf
 domains_apache: |
   ServerName middleclick.wtf

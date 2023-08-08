@@ -2,5 +2,5 @@
     {{ domains_apache }}
 
     RewriteEngine On
-    RewriteRule ^ https://middleclick.wtf%{REQUEST_URI}%{QUERY_STRING} [END,NE,R=permanent]
+    RewriteRule ^ https://{{ domain }}%{REQUEST_URI}%{QUERY_STRING} [END,NE,R=permanent]
 </VirtualHost>

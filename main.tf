@@ -1,8 +1,14 @@
+provider "aws" {
+  region = var.region
+}
+
+provider "local" {}
+
 resource "aws_vpc" "main" {
   cidr_block = "10.15.0.0/16"
 
   tags = {
-    name = "middleclick.wtf-vpc"
+    name = "${var.name_prefix}-vpc"
   }
 }
 
@@ -10,7 +16,7 @@ resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
   tags = {
-    name = "middleclick.wtf-igw"
+    name = "${var.name_prefix}-igw"
   }
 }
 
@@ -19,7 +25,7 @@ resource "aws_subnet" "public" {
   cidr_block = "10.15.0.0/20"
 
   tags = {
-    name = "middleclick.wtf-public-subnet"
+    name = "${var.name_prefix}-public-subnet"
   }
 }
 
@@ -32,7 +38,7 @@ resource "aws_route_table" "public" {
   }
 
   tags = {
-    name = "middleclick.wtf-public-route-table"
+    name = "${var.name_prefix}-public-route-table"
   }
 }
 
@@ -42,7 +48,7 @@ resource "aws_route_table_association" "public" {
 }
 
 resource "aws_security_group" "webserver" {
-  name        = "middleclick.wtf-webserver-sg"
+  name        = "${var.name_prefix}-webserver-sg"
   description = "Allow HTTP(S) and SSH inbound traffic"
   vpc_id      = aws_vpc.main.id
 
@@ -79,7 +85,7 @@ resource "aws_security_group" "webserver" {
 }
 
 resource "aws_key_pair" "main" {
-  key_name   = "middleclick.wtf-key"
+  key_name   = "${var.name_prefix}-key"
   public_key = file("~/.ssh/id_rsa.pub")
 }
 
@@ -120,7 +126,7 @@ resource "aws_instance" "webserver" {
   }
 
   tags = {
-    name = "middleclick.wtf-webserver"
+    name = "${var.name_prefix}-webserver"
   }
 }
 
@@ -131,7 +137,7 @@ resource "aws_ebs_volume" "webserver" {
   encrypted         = true
 
   tags = {
-    name = "middleclick.wtf-webserver-ebs"
+    name = "${var.name_prefix}-webserver-ebs"
   }
 }
 
@@ -146,7 +152,7 @@ resource "aws_eip" "webserver" {
   instance = aws_instance.webserver.id
 
   tags = {
-    name = "middleclick.wtf-webserver-eip"
+    name = "${var.name_prefix}-webserver-eip"
   }
 }
 
@@ -156,7 +162,7 @@ resource "aws_eip_association" "webserver" {
 }
 
 resource "local_file" "ansible_inventory" {
-  filename = "inventory.yml"
+  filename = var.inventory_file
   content = yamlencode({
     all = {
       hosts = {

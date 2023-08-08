@@ -27,7 +27,7 @@
     RewriteCond %{HTTP_USER_AGENT} !"(Discordbot|Macintosh)" [NC]
     RewriteCond %{REQUEST_URI} !^/redirect
     RewriteCond %{QUERY_STRING} ^redirect=([^&]+)$
-    RewriteRule ^.*$ https://middleclick.wtf/redirect?redirect=%1 [R=302,L]
+    RewriteRule ^.*$ https://{{ domain }}/redirect?redirect=%1 [R=302,L]
 
     ErrorDocument 404 /404.html
 
