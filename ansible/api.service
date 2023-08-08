@@ -9,6 +9,7 @@ Restart=always
 RestartSec=1
 User=admin
 ExecStart=/home/admin/api
+WorkingDirectory=/home/admin
 
 [Install]
 WantedBy=multi-user.target

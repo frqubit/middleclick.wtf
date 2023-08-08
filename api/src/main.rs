@@ -1,3 +1,7 @@
+use odht::{Config, HashTableOwned, FxHashFn};
+use std::sync::{Arc, OnceLock};
+use sha2::{Sha256, Digest};
+use tokio::sync::Mutex;
 use infer::MatcherType;
 use thiserror::Error;
 use rand::prelude::*;
@@ -11,15 +15,70 @@ use actix_web::{
 };
 
 
+/****************************************
+* Data
+****************************************/
+type HashIdTableType = Arc<Mutex<HashTableOwned<HashIds>>>;
+static HASHID_TABLE: OnceLock<HashIdTableType> = OnceLock::new();
+fn hashid_table() -> &'static HashIdTableType {
+    HASHID_TABLE.get_or_init(|| {
+        if let Ok(serialized) = std::fs::read("hashids.db") {
+            let table = HashTableOwned::<HashIds>::from_raw_bytes(&serialized).unwrap();
+            return Arc::new(Mutex::new(table));
+        }
+
+        Arc::new(Mutex::new(HashTableOwned::with_capacity(1000, 95)))
+    })
+}
+
+async fn save_hashid_table() {
+    let table = hashid_table().lock().await;
+    let serialized = table.raw_bytes();
+
+    std::fs::write("hashids.db", serialized).unwrap();
+}
+
+type VisitsTableType = Arc<Mutex<HashTableOwned<Visits>>>;
+static VISITS_TABLE: OnceLock<VisitsTableType> = OnceLock::new();
+fn visits_table() -> &'static VisitsTableType {
+    VISITS_TABLE.get_or_init(|| {
+        if let Ok(serialized) = std::fs::read("visits.db") {
+            let table = HashTableOwned::<Visits>::from_raw_bytes(&serialized).unwrap();
+            return Arc::new(Mutex::new(table));
+        }
+
+        Arc::new(Mutex::new(HashTableOwned::with_capacity(1000, 95)))
+    })
+}
+
+async fn save_visits_table() {
+    let table = visits_table().lock().await;
+    let serialized = table.raw_bytes();
+
+    std::fs::write("visits.db", serialized).unwrap();
+}
+
+/****************************************
+* Helpers
+****************************************/
+fn generate_hashid() -> String {
+    let mut thread_rng = rand::thread_rng();
+
+
+    (0..10)
+        .map(|_| thread_rng.sample(rand::distributions::Alphanumeric))
+        .map(char::from)
+        .collect::<String>()
+}
+
+/****************************************
+* Routes
+****************************************/
 #[post("/upload")]
 async fn upload(
     file: web::Bytes
 ) -> Result<impl Responder, UploadError> {
-    let mut thread_rng = rand::thread_rng();
-    let filename = (0..10)
-        .map(|_| thread_rng.sample(rand::distributions::Alphanumeric))
-        .map(char::from)
-        .collect::<String>();
+    let filename = generate_hashid();
 
     if let BodySize::Sized(size) = file.size() {
         if size > 25_000_000 {
@@ -40,6 +99,17 @@ async fn upload(
     }
 
     let extension = file_type.extension();
+
+    let hashid_table = hashid_table();
+    let mut table = hashid_table.lock().await;
+
+    let mut hasher = Sha256::new();
+    hasher.update(&file);
+    let hash: [u8; 32] = hasher.finalize().into();
+
+    table.insert(&hash, &filename.clone());
+
+    tokio::spawn(save_hashid_table());
 
     let filename = format!("{}.{}", filename, extension);
 
@@ -67,6 +137,29 @@ async fn get_image(
         format!("/var/www/middleclick.wtf/images/{}", filename).as_str()
     ).await;
 
+    let id: [u8; 10] = filename
+        .as_bytes()
+        .iter()
+        .take(10)
+        .copied()
+        .collect::<Vec<u8>>()
+        .try_into()
+        .unwrap();
+
+    tokio::spawn(async move {
+        let visits_table = visits_table();
+        let mut table = visits_table.lock().await;
+
+        let mut visits = table.get(&id).unwrap_or(0);
+        visits += 1;
+
+        table.insert(&id, &visits);
+
+        save_visits_table().await;
+
+        info!("Visits: {}", visits);
+    });
+
     if let Ok(file) = file {
         info!("Downloaded file: {}", filename);
         Ok(HttpResponse::Ok().body(file))
@@ -76,7 +169,7 @@ async fn get_image(
     }
 }
 
-#[actix_web::main]
+#[tokio::main]
 async fn main() -> std::io::Result<()> {
     env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
 
@@ -129,5 +222,81 @@ impl ResponseError for DownloadError {
             DownloadError::NotFound => actix_web::http::StatusCode::NOT_FOUND,
             DownloadError::InternalServerError => actix_web::http::StatusCode::INTERNAL_SERVER_ERROR
         }
+    }
+}
+
+/****************************************
+* Data tables
+****************************************/
+struct HashIds;
+struct Visits;
+
+impl Config for HashIds {
+    type Key = [u8; 32];
+    type Value = String;
+
+    type EncodedKey = [u8; 32];
+    type EncodedValue = [u8; 10];
+
+    type H = FxHashFn;
+
+    #[inline]
+    fn encode_key(key: &Self::Key) -> Self::EncodedKey {
+        *key
+    }
+
+    #[inline]
+    fn encode_value(value: &Self::Value) -> Self::EncodedValue {
+        if value.len() != 10 {
+            panic!("Value must be 10 bytes long");
+        }
+
+        if !value.is_ascii() {
+            panic!("Value must be ascii");
+        }
+
+        let mut encoded = [0; 10];
+        encoded.copy_from_slice(value.as_bytes());
+        encoded
+    }
+
+    #[inline]
+    fn decode_key(key: &Self::EncodedKey) -> Self::Key {
+        *key
+    }
+
+    #[inline]
+    fn decode_value(value: &Self::EncodedValue) -> Self::Value {
+        String::from_utf8_lossy(value).to_string()
+    }
+}
+
+impl Config for Visits {
+    type Key = [u8; 10];
+    type Value = u64;
+
+    type EncodedKey = [u8; 10];
+    type EncodedValue = [u8; 8];
+
+    type H = FxHashFn;
+
+    #[inline]
+    fn encode_key(key: &Self::Key) -> Self::EncodedKey {
+        *key
+    }
+
+    #[inline]
+    fn encode_value(value: &Self::Value) -> Self::EncodedValue {
+        value.to_be_bytes()
+    }
+
+    #[inline]
+    fn decode_key(key: &Self::EncodedKey) -> Self::Key {
+        *key
+    }
+
+    #[inline]
+    fn decode_value(value: &Self::EncodedValue) -> Self::Value {
+        u64::from_be_bytes(*value)
     }
 }
