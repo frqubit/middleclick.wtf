@@ -38,26 +38,6 @@ async fn save_hashid_table() {
     std::fs::write("hashids.db", serialized).unwrap();
 }
 
-type VisitsTableType = Arc<Mutex<HashTableOwned<Visits>>>;
-static VISITS_TABLE: OnceLock<VisitsTableType> = OnceLock::new();
-fn visits_table() -> &'static VisitsTableType {
-    VISITS_TABLE.get_or_init(|| {
-        if let Ok(serialized) = std::fs::read("visits.db") {
-            let table = HashTableOwned::<Visits>::from_raw_bytes(&serialized).unwrap();
-            return Arc::new(Mutex::new(table));
-        }
-
-        Arc::new(Mutex::new(HashTableOwned::with_capacity(1000, 95)))
-    })
-}
-
-async fn save_visits_table() {
-    let table = visits_table().lock().await;
-    let serialized = table.raw_bytes();
-
-    std::fs::write("visits.db", serialized).unwrap();
-}
-
 /****************************************
 * Helpers
 ****************************************/
@@ -107,6 +87,14 @@ async fn upload(
     hasher.update(&file);
     let hash: [u8; 32] = hasher.finalize().into();
 
+    if let Some(k) = table.get(&hash) {
+        info!("File already exists: {}", k);
+
+        return Ok(HttpResponse::Ok().body(
+            format!("{}.{}", k, extension)
+        ));
+    }
+
     table.insert(&hash, &filename.clone());
 
     tokio::spawn(save_hashid_table());
@@ -136,29 +124,6 @@ async fn get_image(
     let file = tokio::fs::read(
         format!("/var/www/middleclick.wtf/images/{}", filename).as_str()
     ).await;
-
-    let id: [u8; 10] = filename
-        .as_bytes()
-        .iter()
-        .take(10)
-        .copied()
-        .collect::<Vec<u8>>()
-        .try_into()
-        .unwrap();
-
-    tokio::spawn(async move {
-        let visits_table = visits_table();
-        let mut table = visits_table.lock().await;
-
-        let mut visits = table.get(&id).unwrap_or(0);
-        visits += 1;
-
-        table.insert(&id, &visits);
-
-        save_visits_table().await;
-
-        info!("Visits: {}", visits);
-    });
 
     if let Ok(file) = file {
         info!("Downloaded file: {}", filename);
@@ -229,7 +194,6 @@ impl ResponseError for DownloadError {
 * Data tables
 ****************************************/
 struct HashIds;
-struct Visits;
 
 impl Config for HashIds {
     type Key = [u8; 32];
@@ -268,35 +232,5 @@ impl Config for HashIds {
     #[inline]
     fn decode_value(value: &Self::EncodedValue) -> Self::Value {
         String::from_utf8_lossy(value).to_string()
-    }
-}
-
-impl Config for Visits {
-    type Key = [u8; 10];
-    type Value = u64;
-
-    type EncodedKey = [u8; 10];
-    type EncodedValue = [u8; 8];
-
-    type H = FxHashFn;
-
-    #[inline]
-    fn encode_key(key: &Self::Key) -> Self::EncodedKey {
-        *key
-    }
-
-    #[inline]
-    fn encode_value(value: &Self::Value) -> Self::EncodedValue {
-        value.to_be_bytes()
-    }
-
-    #[inline]
-    fn decode_key(key: &Self::EncodedKey) -> Self::Key {
-        *key
-    }
-
-    #[inline]
-    fn decode_value(value: &Self::EncodedValue) -> Self::Value {
-        u64::from_be_bytes(*value)
     }
 }
