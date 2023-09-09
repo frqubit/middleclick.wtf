@@ -136,7 +136,7 @@ async fn get_image(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    env_logger::init_from_env(env_logger::Env::new().default_filter_or("info"));
+    simple_logging::log_to_file("api.log", log::LevelFilter::Info).unwrap();
 
     HttpServer::new(|| {
         App::new()
