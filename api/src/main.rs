@@ -136,7 +136,23 @@ async fn get_image(
 
 #[tokio::main]
 async fn main() -> std::io::Result<()> {
-    simple_logging::log_to_file("api.log", log::LevelFilter::Info).unwrap();
+    use log::LevelFilter;
+    use log4rs::append::file::FileAppender;
+    use log4rs::encode::pattern::PatternEncoder;
+    use log4rs::config::{Appender, Root, Config};
+
+    let logfile = FileAppender::builder()
+        .encoder(Box::new(PatternEncoder::new("{l} [{d(%d/%m/%Y:%H:%M:%S)}] {m}{n}")))
+        .build("api.log")?;
+
+    let config = Config::builder()
+        .appender(Appender::builder().build("logfile", Box::new(logfile)))
+        .build(Root::builder()
+            .appender("logfile")
+            .build(LevelFilter::Info))
+        .unwrap();
+    
+    log4rs::init_config(config).unwrap();
 
     HttpServer::new(|| {
         App::new()
