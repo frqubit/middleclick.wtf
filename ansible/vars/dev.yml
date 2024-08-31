@@ -1,7 +1,6 @@
-domain: dev.middleclick.wtf
-domains_certbot: -d dev.middleclick.wtf -d www.dev.middleclick.wtf
+domain: dev.middleclickwtf.lernib.com
+domains_certbot: -d dev.middleclickwtf.lernib.com
 domains_apache: |
-  ServerName dev.middleclick.wtf
-  ServerAlias www.dev.middleclick.wtf
-certificate_path: /etc/letsencrypt/live/dev.middleclick.wtf/fullchain.pem
-certificate_key_path: /etc/letsencrypt/live/dev.middleclick.wtf/privkey.pem
+  ServerName dev.middleclickwtf.lernib.com
+certificate_path: /etc/letsencrypt/live/dev.middleclickwtf.lernib.com/fullchain.pem
+certificate_key_path: /etc/letsencrypt/live/dev.middleclickwtf.lernib.com/privkey.pem
