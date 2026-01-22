@@ -21,8 +21,9 @@ resource "aws_internet_gateway" "main" {
 }
 
 resource "aws_subnet" "public" {
-  vpc_id     = aws_vpc.main.id
-  cidr_block = "10.15.0.0/20"
+  vpc_id            = aws_vpc.main.id
+  cidr_block        = "10.15.0.0/20"
+  availability_zone = var.availability_zone
 
   tags = {
     name = "${var.name_prefix}-public-subnet"
@@ -91,6 +92,7 @@ resource "aws_key_pair" "main" {
 
 data "aws_ami" "debian" {
   most_recent = true
+  owners      = ["136693071363"]
 
   filter {
     name   = "name"
@@ -107,6 +109,7 @@ resource "aws_network_interface" "webserver" {
   subnet_id         = aws_subnet.public.id
   security_groups   = [aws_security_group.webserver.id]
   private_ips_count = 1
+  region            = var.region
 }
 
 resource "aws_instance" "webserver" {
@@ -142,9 +145,9 @@ resource "aws_ebs_volume" "webserver" {
 }
 
 resource "aws_volume_attachment" "webserver" {
-  device_name = "/dev/xvdf"
-  volume_id   = aws_ebs_volume.webserver.id
-  instance_id = aws_instance.webserver.id
+  device_name                    = "/dev/xvdf"
+  volume_id                      = aws_ebs_volume.webserver.id
+  instance_id                    = aws_instance.webserver.id
   stop_instance_before_detaching = true
 }
 
@@ -154,6 +157,26 @@ resource "aws_eip" "webserver" {
   tags = {
     name = "${var.name_prefix}-webserver-eip"
   }
+}
+
+data "aws_route53_zone" "selected" {
+  name = regex("([a-z0-9]+.[a-z0-9]+)$", var.domain)[0]
+}
+
+resource "aws_route53_record" "basic" {
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = var.domain
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.webserver.public_ip]
+}
+
+resource "aws_route53_record" "www" {
+  zone_id = data.aws_route53_zone.selected.zone_id
+  name    = "www.${var.domain}"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.webserver.public_ip]
 }
 
 resource "aws_eip_association" "webserver" {

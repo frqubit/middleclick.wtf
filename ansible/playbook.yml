@@ -56,7 +56,7 @@
           - certbot
           - python3-certbot-apache
     - name: Get certificates
-      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com {{ domains_certbot }}
+      shell: certbot certonly --apache --non-interactive --agree-tos --email carlos.kieliszewski@gmail.com -d {{ domain }} -d www.{{ domain }}
     - name: Stop Apache2 (time 2)
       service:
         name: apache2

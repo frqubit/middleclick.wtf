@@ -1,6 +1,7 @@
 <IfModule mod_ssl.c>
 <VirtualHost *:443>
-    {{ domains_apache }}
+    ServerName {{ domain }}
+    ServerAlias www.{{ domain }}
 
     DocumentRoot /var/www/middleclick.wtf
 
@@ -38,7 +39,7 @@
     </Directory>
 
     Include /etc/letsencrypt/options-ssl-apache.conf
-    SSLCertificateFile {{ certificate_path }}
-    SSLCertificateKeyFile {{ certificate_key_path }}
+    SSLCertificateFile /etc/letsencrypt/live/{{ domain }}/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/{{ domain }}/privkey.pem
 </VirtualHost>
 </IfModule>

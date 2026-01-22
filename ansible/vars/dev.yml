@@ -1,6 +1,0 @@
-domain: dev.middleclickwtf.lernib.com
-domains_certbot: -d dev.middleclickwtf.lernib.com
-domains_apache: |
-  ServerName dev.middleclickwtf.lernib.com
-certificate_path: /etc/letsencrypt/live/dev.middleclickwtf.lernib.com/fullchain.pem
-certificate_key_path: /etc/letsencrypt/live/dev.middleclickwtf.lernib.com/privkey.pem

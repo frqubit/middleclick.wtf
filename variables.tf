@@ -15,3 +15,7 @@ variable "name_prefix" {
 variable "inventory_file" {
   description = "Path to the Ansible inventory file"
 }
+
+variable "domain" {
+  description = "Domain to deploy to"
+}
